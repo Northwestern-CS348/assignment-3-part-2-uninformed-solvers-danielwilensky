@@ -1,9 +1,11 @@
 
 from solver import *
+from collections import deque
 
 class SolverDFS(UninformedSolver):
     def __init__(self, gameMaster, victoryCondition):
         super().__init__(gameMaster, victoryCondition)
+        self.stack = deque()
 
     def solveOneStep(self):
         """
@@ -19,13 +21,42 @@ class SolverDFS(UninformedSolver):
             True if the desired solution state is reached, False otherwise
         """
         ### Student code goes here
-        return True
+        self.visited[self.currentState] = True
+        if self.currentState.state == self.victoryCondition:
+            return True
+        moves = self.gm.getMovables() #don't need to check if false right? Always have a move
+        if len(self.currentState.children) == 0:
+            for i in moves:
+                self.gm.makeMove(i)
+                newState = GameState(self.gm.getGameState(), self.currentState.depth + 1, i)
+                if newState not in self.visited.keys(): #only state gets hashed so doesn't matter its a diff object
+                    self.visited[newState] = False
+                newState.parent = self.currentState
+                #this will add node to tree multiple times, think its wrong, but thats how they have order
+                self.currentState.children.append(newState) #implicitly all in order of getMovables()
+                self.gm.reverseMove(i)
+        for i in self.currentState.children[::-1]:
+            if self.visited[i] == False:
+                self.stack.appendleft(i)
+        nextState = self.stack.popleft()
+        move = nextState.requiredMovable
+        ##hasn't been technically tested since worked before added, so condition is never met
+        while self.currentState.nextChildToVisit == len(self.currentState.children):
+            self.gm.reverseMove(self.currentState.requiredMovable)
+            self.currentState == self.currentState.parent
+        nextState.parent.nextChildToVisit += 1
+        ##Above technically not tested
+        self.gm.makeMove(move)
+        self.currentState = nextState
+        if self.currentState.state == self.victoryCondition: ##make a test where actually win
+            return True
+        return False
 
 
 class SolverBFS(UninformedSolver):
     def __init__(self, gameMaster, victoryCondition):
         super().__init__(gameMaster, victoryCondition)
-
+        self.queue = deque()
     def solveOneStep(self):
         """
         Go to the next state that has not been explored. If a
@@ -40,4 +71,83 @@ class SolverBFS(UninformedSolver):
             True if the desired solution state is reached, False otherwise
         """
         ### Student code goes here
-        return True
+        self.visited[self.currentState] = True
+        if self.currentState.state == self.victoryCondition:  # same as self.gm.isWon()?
+            return True
+        moves = self.gm.getMovables()  # don't need to check if false right? Always have a move
+        if len(self.currentState.children) == 0:
+            for i in moves:
+                self.gm.makeMove(i)
+                newState = GameState(self.gm.getGameState(), self.currentState.depth + 1, i)
+                if newState not in self.visited.keys():  # only state gets hashed so doesn't matter its a diff object
+                    newState.parent = self.currentState
+                    self.currentState.children.append(newState)  # implicitly all in order of getMovables()
+                    self.visited[newState] = False
+                self.gm.reverseMove(i)
+        for i in self.currentState.children:
+            if self.visited[i] == False:
+                self.queue.append(i)
+        nextState = self.queue.popleft()
+        move = nextState.requiredMovable
+        backMoves = deque()
+        if nextState.depth == self.currentState.depth:
+            nextStateAncestor = nextState
+        else: #nextState can only be deeper
+            nextStateAncestor = nextState.parent
+            backMoves.appendleft(move)
+        while self.currentState != nextStateAncestor:
+            self.gm.reverseMove(self.currentState.requiredMovable)
+            self.currentState = self.currentState.parent
+            backMoves.appendleft(nextStateAncestor.requiredMovable)
+            nextStateAncestor = nextStateAncestor.parent
+        for i in backMoves:
+            self.gm.makeMove(i) #includes move
+        self.currentState = nextState
+        if self.currentState.state == self.victoryCondition:  # do I use self.victoryCondition? I just use self.gm.isWon()
+            return True
+        return False
+
+
+#DFS
+
+
+
+        # if self.counter == 0:
+        #     self.createTree()
+        #     self.counter += 1
+        # for i in self.currentState.children[::-1]:
+        #     #if self.visited[i] == False:
+        #     self.stack.appendleft(i)
+        # nextState = self.stack.popleft()
+        # if nextState.state == self.victoryCondition:
+        #     return True
+        # self.currentState = nextState
+        # return False
+
+        # def createTree(self):
+        #     self.visited[self.currentState] = True
+        #     if self.currentState.state == self.victoryCondition:
+        #         pass
+        #     else:
+        #         moves = self.gm.getMovables()
+        #         if len(self.currentState.children) == 0:
+        #             for i in moves:
+        #                 self.gm.makeMove(i)
+        #                 newState = GameState(self.gm.getGameState(), self.currentState.depth + 1, i)
+        #                 if newState not in self.visited.keys():  # only state gets hashed so doesn't matter its a diff object
+        #                     newState.parent = self.currentState
+        #                     self.currentState.children.append(newState)  # implicitly all in order of getMovables()
+        #                     self.visited[newState] = False
+        #                 self.gm.reverseMove(i)
+        #         if self.currentState.nextChildToVisit < len(self.currentState.children):
+        #             nextState = self.currentState.children[self.currentState.nextChildToVisit]
+        #             self.currentState.nextChildToVisit += 1
+        #             move = nextState.requiredMovable
+        #             self.gm.makeMove(move)
+        #             self.lastMove = move
+        #             self.currentState = nextState
+        #             self.createTree()
+        #         else:
+        #             move = self.lastMove
+        #         self.gm.reverseMove(move)
+
