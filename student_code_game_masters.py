@@ -105,18 +105,16 @@ class TowerOfHanoiGame(GameMaster):
             movetop = parse_input('fact: (top ' + disk + ' ' + peg2 + ')')
             self.kb.kb_assert(movetop)
             if listofbindings:
-                if len(listofbindings) == 2:
-                    belowdisk1 = listofbindings[0].bindings[0].constant.element
-                    belowdisk2 = listofbindings[1].bindings[0].constant.element
-                    smallerques = parse_input('fact: (smaller ' + belowdisk1 + ' ' + belowdisk2 + ')')
+                belowdisks = []
+                for i in listofbindings:
+                    belowdisks.append(i.bindings[0].constant.element)
+                smallest = belowdisks[0]
+                for i in belowdisks:
+                    smallerques = parse_input('fact: (smaller ' + smallest + ' ' + i + ')')
                     listofbindings2 = self.kb.kb_ask(smallerques)
-                    if listofbindings2:
-                        staytop = parse_input('fact: (top ' + belowdisk1 + ' ' + peg1 + ')')
-                    else:
-                        staytop = parse_input('fact: (top ' + belowdisk2 + ' ' + peg1 + ')')
-                elif len(listofbindings) == 1:
-                    belowdisk = listofbindings[0].bindings[0].constant.element
-                    staytop = parse_input('fact: (top ' + belowdisk + ' ' + peg1 + ')')
+                    if not listofbindings2:
+                        smallest = i
+                staytop = parse_input('fact: (top ' + smallest + ' ' + peg1 + ')')
                 self.kb.kb_assert(staytop)
 
 
